@@ -304,17 +304,22 @@ function Epidemiology() {
               backgroundColor: colors.primary[400],
               padding: "20px",
               borderRadius: "8px",
-              height: "400px",
+              height: "450px",
             }}
           >
-            <BarChart
-              data={chartData1}
-              dataKey="prevalence"
-              nameKey="disease"
-              color={colors.blueAccent[500]}
-              xAxisLabel="Vaccine Type"
-              yAxisLabel="Number of People (in thousands)"
-            />
+            <Typography variant="h6" color={colors.grey[100]} sx={{ mb: "10px" }}>
+              Prevalence by Disease
+            </Typography>
+            <Box sx={{ height: "calc(100% - 40px)" }}>
+              <BarChart
+                data={chartData1}
+                dataKey="prevalence"
+                nameKey="disease"
+                color={colors.blueAccent[500]}
+                xAxisLabel="Vaccine Type"
+                yAxisLabel="Number of People (in thousands)"
+              />
+            </Box>
           </Box>
         </Grid>
         <Grid item xs={12} md={6}>
@@ -323,15 +328,20 @@ function Epidemiology() {
               backgroundColor: colors.primary[400],
               padding: "20px",
               borderRadius: "8px",
-              height: "400px",
+              height: "450px",
             }}
           >
-            <PieChart
-              data={chartData2}
-              dataKey="incidence"
-              nameKey="region"
-              title="Incidence by Region (% Distribution)"
-            />
+            <Typography variant="h6" color={colors.grey[100]} sx={{ mb: "10px" }}>
+              Incidence by Region (% Distribution)
+            </Typography>
+            <Box sx={{ height: "calc(100% - 40px)" }}>
+              <PieChart
+                data={chartData2}
+                dataKey="incidence"
+                nameKey="region"
+                title=""
+              />
+            </Box>
           </Box>
         </Grid>
         <Grid item xs={12}>
@@ -340,17 +350,22 @@ function Epidemiology() {
               backgroundColor: colors.primary[400],
               padding: "20px",
               borderRadius: "8px",
-              height: "400px",
+              height: "450px",
             }}
           >
-            <LineChart
-              data={chartData3}
-              dataKeys={["prevalence", "incidence"]}
-              nameKey="year"
-              colors={[colors.blueAccent[500], colors.greenAccent[500]]}
-              xAxisLabel="Year"
-              yAxisLabel="Number of Cases"
-            />
+            <Typography variant="h6" color={colors.grey[100]} sx={{ mb: "10px" }}>
+              Prevalence and Incidence Trends Over Time
+            </Typography>
+            <Box sx={{ height: "calc(100% - 40px)" }}>
+              <LineChart
+                data={chartData3}
+                dataKeys={["prevalence", "incidence"]}
+                nameKey="year"
+                colors={[colors.blueAccent[500], colors.greenAccent[500]]}
+                xAxisLabel="Year"
+                yAxisLabel="Number of Cases"
+              />
+            </Box>
           </Box>
         </Grid>
       </Grid>
