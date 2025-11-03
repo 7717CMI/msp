@@ -1,45 +1,63 @@
-@import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-html,
-body,
-#root,
-.app,
-.content {
-  height: 100%;
-  width: 100%;
-  font-family: "Source Sans Pro", sans-serif;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.app {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
+body {
+  font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
-/* Track */
 ::-webkit-scrollbar-track {
-  background: #e0e0e0;
+  background: transparent;
 }
 
-/* Handle */
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #CBD5E0;
+  border-radius: 4px;
 }
 
-/* Handle on hover */
+.dark ::-webkit-scrollbar-thumb {
+  background: #4A5568;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #A0AEC0;
 }
 
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom animations */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  background-size: 1000px 100%;
+}
