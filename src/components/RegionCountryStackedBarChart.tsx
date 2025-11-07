@@ -83,6 +83,7 @@ export function RegionCountryStackedBarChart({
         const result: any = { 
           yearRegion: groupKey,
           year: yearRegionMap[groupKey].year,
+          yearLabel: String(yearRegionMap[groupKey].year),
           region: yearRegionMap[groupKey].region
         }
         countriesArray.forEach((country) => {
@@ -167,7 +168,7 @@ export function RegionCountryStackedBarChart({
       >
         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#4A5568' : '#EAEAEA'} />
         <XAxis 
-          dataKey="yearRegion" 
+          dataKey="yearLabel" 
           stroke={isDark ? '#A0AEC0' : '#4A5568'}
           style={{ fontSize: '12px', fontWeight: 500 }}
           angle={0}
@@ -177,7 +178,7 @@ export function RegionCountryStackedBarChart({
           tick={{ fill: isDark ? '#E2E8F0' : '#2D3748' }}
           tickMargin={10}
           label={{
-            value: xAxisLabel || 'Year - Region',
+            value: xAxisLabel || 'Year',
             position: 'insideBottom',
             offset: -5,
             style: { 

@@ -133,7 +133,7 @@ export function GroupedBarChart({
             bottom: 80,
           }}
           barGap={0.4}
-          barCategoryGap={0.2}
+          barCategoryGap={transformedData.chartData.length > 1 ? 0.5 : 0.2}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#4A5568' : '#EAEAEA'} />
           <XAxis 

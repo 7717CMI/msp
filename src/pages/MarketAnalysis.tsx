@@ -6,7 +6,7 @@ import { StatBox } from '../components/StatBox'
 import { FilterDropdown } from '../components/FilterDropdown'
 import { SegmentGroupedBarChart } from '../components/SegmentGroupedBarChart'
 import { RegionCountryStackedBarChart } from '../components/RegionCountryStackedBarChart'
-import { PieChart } from '../components/PieChart'
+import { CrossSegmentStackedBarChart } from '../components/CrossSegmentStackedBarChart'
 import { DemoNotice } from '../components/DemoNotice'
 import { useTheme } from '../context/ThemeContext'
 import { InfoTooltip } from '../components/InfoTooltip'
@@ -283,7 +283,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   }
 
   const getDataLabel = (): string => {
-    return filters.marketEvaluation === 'By Volume' ? 'Market Volume (Units)' : 'Market Value (US$ Million)'
+    return filters.marketEvaluation === 'By Volume' ? 'Market Volume (Units)' : 'Market Size (US$ Million)'
   }
 
   // Analysis data for charts - Market segment based
@@ -303,6 +303,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         applications: [] as string[],
         endUsers: [] as string[],
         countries: [] as string[],
+        bladeMaterialStackedData: { chartData: [], segments: [] },
+        handleLengthStackedData: { chartData: [], segments: [] },
+        applicationStackedData: { chartData: [], segments: [] },
+        endUserStackedData: { chartData: [], segments: [] },
+        distributionChannelTypeStackedData: { chartData: [], segments: [] },
+        offlineChannelStackedData: { chartData: [], segments: [] },
+        onlineChannelStackedData: { chartData: [], segments: [] },
       }
     }
 
@@ -339,8 +346,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       return { chartData, segments }
     }
 
-    // Helper function to generate pie chart data (totals across all years)
-    const generatePieChartData = (
+    // Helper function to generate year-wise stacked bar chart data
+    const generateYearWiseStackedBarData = (
       getSegmentValue: (d: any) => string,
       selectedSegments?: string[]
     ) => {
@@ -349,24 +356,37 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         ? selectedSegments.filter(s => s).sort() 
         : segmentsFromData
       
-      const segmentTotals = new Map<string, number>()
+      // Group by year, then by segment
+      const yearSegmentMap = new Map<number, Map<string, number>>()
       
       filteredData.forEach(d => {
+        const year = d.year
         const segment = getSegmentValue(d)
         if (segment) {
-          segmentTotals.set(segment, (segmentTotals.get(segment) || 0) + getDataValue(d))
+          if (!yearSegmentMap.has(year)) {
+            yearSegmentMap.set(year, new Map<string, number>())
+          }
+          const segmentMap = yearSegmentMap.get(year)!
+          segmentMap.set(segment, (segmentMap.get(segment) || 0) + getDataValue(d))
         }
       })
 
-      const pieData = segments
-        .map(segment => ({
-          name: segment,
-          value: segmentTotals.get(segment) || 0
-        }))
-        .filter(item => item.value > 0)
-        .sort((a, b) => b.value - a.value)
+      // Convert to array format for stacked bar chart
+      const chartData = years.map(year => {
+        const entry: Record<string, number | string> = { year: String(year) }
+        const segmentMap = yearSegmentMap.get(year) || new Map<string, number>()
+        segments.forEach(segment => {
+          entry[segment] = segmentMap.get(segment) || 0
+        })
+        return entry
+      })
 
-      return pieData
+      // Filter segments that have at least one non-zero value
+      const activeSegments = segments.filter(segment => 
+        chartData.some(entry => (entry[segment] as number) > 0)
+      )
+
+      return { chartData, segments: activeSegments }
     }
 
     // Product Type Chart - use selected filters to show all selected options
@@ -471,23 +491,104 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       })
     })
 
-    // Generate pie chart data for categories that work well as pie charts
-    const bladeMaterialPieData = generatePieChartData(
+    // Generate year-wise stacked bar chart data for share analysis
+    const bladeMaterialStackedData = generateYearWiseStackedBarData(
       (d) => d.bladeMaterial || '',
       filters.bladeMaterial.length > 0 ? filters.bladeMaterial : undefined
     )
-    const handleLengthPieData = generatePieChartData(
+    const handleLengthStackedData = generateYearWiseStackedBarData(
       (d) => d.handleLength || '',
       filters.handleLength.length > 0 ? filters.handleLength : undefined
     )
-    const applicationPieData = generatePieChartData(
+    const applicationStackedData = generateYearWiseStackedBarData(
       (d) => d.application || '',
       filters.application.length > 0 ? filters.application : undefined
     )
-    const endUserPieData = generatePieChartData(
+    const endUserStackedData = generateYearWiseStackedBarData(
       (d) => d.endUser || '',
       filters.endUser.length > 0 ? filters.endUser : undefined
     )
+
+    // Generate distribution channel type stacked bar chart data (Online vs Offline)
+    const distributionChannelTypeStackedData = generateYearWiseStackedBarData(
+      (d) => d.distributionChannelType || '',
+      filters.distributionChannelType.length > 0 ? filters.distributionChannelType : undefined
+    )
+
+    // Generate distribution channel subtype stacked bar chart data
+    // Only show if a distribution channel type is selected
+    let offlineChannelStackedData: { chartData: Array<Record<string, number | string>>; segments: string[] } = { chartData: [], segments: [] }
+    let onlineChannelStackedData: { chartData: Array<Record<string, number | string>>; segments: string[] } = { chartData: [], segments: [] }
+    
+    if (filters.distributionChannelType.length > 0) {
+      // Filter data for offline channels
+      if (filters.distributionChannelType.includes('Offline')) {
+        const offlineData = filteredData.filter(d => d.distributionChannelType === 'Offline')
+        const offlineChannels = [...new Set(offlineData.map(d => d.distributionChannel))].filter(Boolean).sort() as string[]
+        
+        const yearChannelMap = new Map<number, Map<string, number>>()
+        offlineData.forEach(d => {
+          const year = d.year
+          const channel = d.distributionChannel
+          if (channel) {
+            if (!yearChannelMap.has(year)) {
+              yearChannelMap.set(year, new Map<string, number>())
+            }
+            const channelMap = yearChannelMap.get(year)!
+            channelMap.set(channel, (channelMap.get(channel) || 0) + getDataValue(d))
+          }
+        })
+        
+        const chartData = years.map(year => {
+          const entry: Record<string, number | string> = { year: String(year) }
+          const channelMap = yearChannelMap.get(year) || new Map<string, number>()
+          offlineChannels.forEach(channel => {
+            entry[channel] = channelMap.get(channel) || 0
+          })
+          return entry
+        })
+        
+        const activeChannels = offlineChannels.filter(channel => 
+          chartData.some(entry => (entry[channel] as number) > 0)
+        )
+        
+        offlineChannelStackedData = { chartData, segments: activeChannels }
+      }
+      
+      // Filter data for online channels
+      if (filters.distributionChannelType.includes('Online')) {
+        const onlineData = filteredData.filter(d => d.distributionChannelType === 'Online')
+        const onlineChannels = [...new Set(onlineData.map(d => d.distributionChannel))].filter(Boolean).sort() as string[]
+        
+        const yearChannelMap = new Map<number, Map<string, number>>()
+        onlineData.forEach(d => {
+          const year = d.year
+          const channel = d.distributionChannel
+          if (channel) {
+            if (!yearChannelMap.has(year)) {
+              yearChannelMap.set(year, new Map<string, number>())
+            }
+            const channelMap = yearChannelMap.get(year)!
+            channelMap.set(channel, (channelMap.get(channel) || 0) + getDataValue(d))
+          }
+        })
+        
+        const chartData = years.map(year => {
+          const entry: Record<string, number | string> = { year: String(year) }
+          const channelMap = yearChannelMap.get(year) || new Map<string, number>()
+          onlineChannels.forEach(channel => {
+            entry[channel] = channelMap.get(channel) || 0
+          })
+          return entry
+        })
+        
+        const activeChannels = onlineChannels.filter(channel => 
+          chartData.some(entry => (entry[channel] as number) > 0)
+        )
+        
+        onlineChannelStackedData = { chartData, segments: activeChannels }
+      }
+    }
 
     return {
       productTypeChartData: productTypeData.chartData,
@@ -503,13 +604,16 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
       applications: applicationData.segments,
       endUsers: endUserData.segments,
       countries,
-      // Pie chart data
-      bladeMaterialPieData,
-      handleLengthPieData,
-      applicationPieData,
-      endUserPieData,
+      // Year-wise stacked bar chart data for share analysis
+      bladeMaterialStackedData,
+      handleLengthStackedData,
+      applicationStackedData,
+      endUserStackedData,
+      distributionChannelTypeStackedData,
+      offlineChannelStackedData,
+      onlineChannelStackedData,
     }
-  }, [filteredData, filters.marketEvaluation, filters.productType, filters.bladeMaterial, filters.handleLength, filters.application, filters.endUser, filters.country])
+  }, [filteredData, filters.marketEvaluation, filters.productType, filters.bladeMaterial, filters.handleLength, filters.application, filters.endUser, filters.country, filters.distributionChannelType])
 
   // KPI Stats
   const kpis = useMemo(() => {
@@ -560,13 +664,13 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <InfoTooltip content="• Provides insights into market value and volume analysis\n• Analyze data by market segments: Product Type, Blade Material, Handle Length, Application, End User\n• Use filters to explore market trends\n• Charts show market value (US$ Million) or volume (Units) by selected segments">
+        <InfoTooltip content="• Provides insights into market size and volume analysis\n• Analyze data by market segments: Product Type, Blade Material, Handle Length, Application, End User\n• Use filters to explore market trends\n• Charts show market size (US$ Million) or volume (Units) by selected segments">
           <h1 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 cursor-help">
             Market Analysis
           </h1>
         </InfoTooltip>
         <p className="text-xl text-text-secondary-light dark:text-text-secondary-dark">
-          Market value and volume analysis by segments, countries, and years
+          Market size and volume analysis by segments, countries, and years
         </p>
       </motion.div>
 
@@ -754,21 +858,21 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               <div className={`p-7 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                 <StatBox
                   title={kpis.totalValue}
-                  subtitle={`Total ${filters.marketEvaluation === 'By Volume' ? 'Volume' : 'Market Value'}`}
+                  subtitle={`Total ${filters.marketEvaluation === 'By Volume' ? 'Volume' : 'Market Size'}`}
                 />
               </div>
             </div>
           </div>
 
-          {/* Graph 1: Market Value by Product Type */}
+          {/* Graph 1: Market Size by Product Type */}
           {analysisData.productTypeChartData.length > 0 && analysisData.productTypes && analysisData.productTypes.length > 0 && (
             <div className="mb-20">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} by product type grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'}\n• Compare product type performance across years`}>
+                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by product type grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare product type performance across years`}>
                     <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} by Product Type
+                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Product Type
                     </h2>
                   </InfoTooltip>
                 </div>
@@ -779,7 +883,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                 <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
                   <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} Performance by Year
+                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} Performance by Year
                   </h3>
                   <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                     {getDataLabel()}
@@ -797,34 +901,37 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
             </div>
           )}
 
-          {/* Pie Charts Section - 2x2 Grid */}
-          {((analysisData.bladeMaterialPieData && analysisData.bladeMaterialPieData.length > 0) ||
-            (analysisData.handleLengthPieData && analysisData.handleLengthPieData.length > 0) ||
-            (analysisData.applicationPieData && analysisData.applicationPieData.length > 0) ||
-            (analysisData.endUserPieData && analysisData.endUserPieData.length > 0)) && (
+          {/* Share Analysis Section - Year-wise Stacked Bar Charts */}
+          {((analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0) ||
+            (analysisData.handleLengthStackedData.chartData.length > 0 && analysisData.handleLengthStackedData.segments.length > 0) ||
+            (analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0) ||
+            (analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0) ||
+            (analysisData.distributionChannelTypeStackedData.chartData.length > 0 && analysisData.distributionChannelTypeStackedData.segments.length > 0) ||
+            (analysisData.offlineChannelStackedData.chartData.length > 0 && analysisData.offlineChannelStackedData.segments.length > 0) ||
+            (analysisData.onlineChannelStackedData.chartData.length > 0 && analysisData.onlineChannelStackedData.segments.length > 0)) && (
             <div className="mb-20">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} distribution across different segments\n• Each pie chart represents the proportion of total ${filters.marketEvaluation === 'By Volume' ? 'volume' : 'value'}\n• Hover over slices to see detailed values and percentages`}>
+                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share across different segments by year\n• Each stacked bar represents a year with segments showing the proportion\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Hover over bars to see detailed values and percentages`}>
                     <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} Distribution Analysis
+                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} Share Analysis
                     </h2>
                   </InfoTooltip>
                 </div>
                 <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
-                  Total distribution across all selected years
+                  Year-wise share breakdown (no summation across years)
                 </p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Blade Material Pie Chart */}
-                {analysisData.bladeMaterialPieData && analysisData.bladeMaterialPieData.length > 0 && (
+                {/* Blade Material Stacked Bar Chart */}
+                {analysisData.bladeMaterialStackedData.chartData.length > 0 && analysisData.bladeMaterialStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} distribution by blade material\n• Each slice represents the proportion of total ${filters.marketEvaluation === 'By Volume' ? 'volume' : 'value'}\n• Hover over slices to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by blade material by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Blade Material Distribution
+                          Blade Material Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -832,23 +939,24 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                       </p>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
-                      <PieChart
-                        data={analysisData.bladeMaterialPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        isVolume={filters.marketEvaluation === 'By Volume'}
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.bladeMaterialStackedData.chartData}
+                        dataKeys={analysisData.bladeMaterialStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Handle Length Pie Chart */}
-                {analysisData.handleLengthPieData && analysisData.handleLengthPieData.length > 0 && (
+                {/* Handle Length Stacked Bar Chart */}
+                {analysisData.handleLengthStackedData.chartData.length > 0 && analysisData.handleLengthStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} distribution by handle length\n• Each slice represents the proportion of total ${filters.marketEvaluation === 'By Volume' ? 'volume' : 'value'}\n• Hover over slices to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by handle length by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Handle Length Distribution
+                          Handle Length Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -856,23 +964,24 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                       </p>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
-                      <PieChart
-                        data={analysisData.handleLengthPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        isVolume={filters.marketEvaluation === 'By Volume'}
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.handleLengthStackedData.chartData}
+                        dataKeys={analysisData.handleLengthStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Application Pie Chart */}
-                {analysisData.applicationPieData && analysisData.applicationPieData.length > 0 && (
+                {/* Application Stacked Bar Chart */}
+                {analysisData.applicationStackedData.chartData.length > 0 && analysisData.applicationStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} distribution by application\n• Each slice represents the proportion of total ${filters.marketEvaluation === 'By Volume' ? 'volume' : 'value'}\n• Hover over slices to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by application by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          Application Distribution
+                          Application Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -880,23 +989,24 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                       </p>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
-                      <PieChart
-                        data={analysisData.applicationPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        isVolume={filters.marketEvaluation === 'By Volume'}
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.applicationStackedData.chartData}
+                        dataKeys={analysisData.applicationStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* End User Pie Chart */}
-                {analysisData.endUserPieData && analysisData.endUserPieData.length > 0 && (
+                {/* End User Stacked Bar Chart */}
+                {analysisData.endUserStackedData.chartData.length > 0 && analysisData.endUserStackedData.segments.length > 0 && (
                   <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                     <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
-                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} distribution by end user\n• Each slice represents the proportion of total ${filters.marketEvaluation === 'By Volume' ? 'volume' : 'value'}\n• Hover over slices to see detailed values and percentages`}>
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by end user by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
                         <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
-                          End User Distribution
+                          End User Share
                         </h3>
                       </InfoTooltip>
                       <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
@@ -904,11 +1014,87 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                       </p>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
-                      <PieChart
-                        data={analysisData.endUserPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        isVolume={filters.marketEvaluation === 'By Volume'}
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.endUserStackedData.chartData}
+                        dataKeys={analysisData.endUserStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Distribution Channel Type Stacked Bar Chart */}
+                {analysisData.distributionChannelTypeStackedData.chartData.length > 0 && analysisData.distributionChannelTypeStackedData.segments.length > 0 && (
+                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by distribution channel type by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
+                          Distribution Channel Type Share
+                        </h3>
+                      </InfoTooltip>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.distributionChannelTypeStackedData.chartData}
+                        dataKeys={analysisData.distributionChannelTypeStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Offline Channel Subtype Stacked Bar Chart - Only show if Offline type is selected */}
+                {analysisData.offlineChannelStackedData.chartData.length > 0 && analysisData.offlineChannelStackedData.segments.length > 0 && (
+                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by offline distribution channel subtypes by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
+                          Offline Channel Share
+                        </h3>
+                      </InfoTooltip>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.offlineChannelStackedData.chartData}
+                        dataKeys={analysisData.offlineChannelStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Online Channel Subtype Stacked Bar Chart - Only show if Online type is selected */}
+                {analysisData.onlineChannelStackedData.chartData.length > 0 && analysisData.onlineChannelStackedData.segments.length > 0 && (
+                  <div className={`p-5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[480px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <div className="mb-3 pb-3 border-b border-gray-200 dark:border-navy-light">
+                      <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} share by online distribution channel subtypes by year\n• X-axis: Year, Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Each stacked bar shows the proportion for that year\n• Hover over bars to see detailed values and percentages`}>
+                        <h3 className="text-base font-bold text-electric-blue dark:text-cyan-accent mb-1 cursor-help">
+                          Online Channel Share
+                        </h3>
+                      </InfoTooltip>
+                      <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        {getDataLabel()}
+                      </p>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                      <CrossSegmentStackedBarChart
+                        data={analysisData.onlineChannelStackedData.chartData}
+                        dataKeys={analysisData.onlineChannelStackedData.segments}
+                        xAxisLabel="Year"
+                        yAxisLabel={getDataLabel()}
+                        nameKey="year"
                       />
                     </div>
                   </div>
@@ -917,15 +1103,15 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
             </div>
           )}
 
-          {/* Graph 6: Market Value by Country */}
+          {/* Graph 6: Market Size by Country */}
           {analysisData.countryChartData.length > 0 && analysisData.countries && analysisData.countries.length > 0 && (
             <div className="mb-20">
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} by country grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'}\n• Compare country performance across years`}>
+                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by country grouped by year\n• X-axis: Year\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'}\n• Compare country performance across years`}>
                     <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} by Country by Year
+                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Country by Year
                     </h2>
                   </InfoTooltip>
                 </div>
@@ -936,7 +1122,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[550px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                 <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
                   <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
-                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} Performance by Year
+                    {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} Performance by Year
                   </h3>
                   <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                     {getDataLabel()}
@@ -960,9 +1146,9 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market value'} by region and country grouped by year\n• X-axis: Year - Region combinations\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : filters.marketEvaluation === 'By Value' ? 'Percentage (%)' : 'Market Value'}\n• Compare regional and country performance across years`}>
+                  <InfoTooltip content={`• Shows ${filters.marketEvaluation === 'By Volume' ? 'market volume' : 'market size'} by region and country grouped by year\n• X-axis: Year - Region combinations\n• Y-axis: ${filters.marketEvaluation === 'By Volume' ? 'Market Volume' : filters.marketEvaluation === 'By Value' ? 'Percentage (%)' : 'Market Size'}\n• Compare regional and country performance across years`}>
                     <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
-                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Value'} by Region & Country
+                      {filters.marketEvaluation === 'By Volume' ? 'Market Volume' : 'Market Size'} by Region & Country
                     </h2>
                   </InfoTooltip>
                 </div>
@@ -987,7 +1173,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   <RegionCountryStackedBarChart
                     data={analysisData.regionCountryPercentageChartData}
                     dataKey="value"
-                    xAxisLabel="Year - Region"
+                    xAxisLabel="Year"
                     yAxisLabel={filters.marketEvaluation === 'By Volume' ? 'Volume (Units)' : 'Percentage (%)'}
                     showPercentage={filters.marketEvaluation === 'By Value'}
                   />
