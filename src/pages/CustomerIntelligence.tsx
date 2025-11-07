@@ -905,7 +905,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       <div className={`p-8 rounded-2xl shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'}`}>
         <div className="mb-6">
           <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-            List of Potential Customers for Shovels in North America
+            List of Potential Customers for Shovels
           </h3>
         </div>
 
