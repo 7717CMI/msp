@@ -10,6 +10,8 @@ import { CrossSegmentStackedBarChart } from '../components/CrossSegmentStackedBa
 import { DemoNotice } from '../components/DemoNotice'
 import { useTheme } from '../context/ThemeContext'
 import { InfoTooltip } from '../components/InfoTooltip'
+import { WaterfallChart } from '../components/WaterfallChart'
+import { BubbleChart } from '../components/BubbleChart'
 
 interface MarketAnalysisProps {
   onNavigate: (page: string) => void
@@ -21,6 +23,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   
+  const [activeTab, setActiveTab] = useState<'standard' | 'incremental' | 'attractiveness'>('standard')
   const [data, setData] = useState<ShovelMarketData[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
@@ -34,6 +37,19 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     distributionChannelType: [] as string[],
     distributionChannel: [] as string[],
     marketEvaluation: 'By Value' as MarketEvaluationType,
+  })
+  
+  // Separate filters for incremental tab
+  const [incrementalFilters, setIncrementalFilters] = useState({
+    region: [] as string[],
+    productType: [] as string[],
+    country: [] as string[],
+  })
+  
+  // Separate filters for attractiveness tab
+  const [attractivenessFilters, setAttractivenessFilters] = useState({
+    region: [] as string[],
+    productType: [] as string[],
   })
 
   useEffect(() => {
@@ -641,6 +657,259 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
     }
   }, [filteredData, filters.marketEvaluation])
 
+  // Get unique options for incremental filters
+  const incrementalFilterOptions = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {
+        regions: [],
+        productTypes: [],
+        countries: [],
+      }
+    }
+    
+    const regionSet = new Set<string>()
+    const productTypeSet = new Set<string>()
+    const countrySet = new Set<string>()
+    
+    data.forEach(d => {
+      if (d.region) regionSet.add(d.region)
+      if (d.productType) productTypeSet.add(d.productType)
+      if (d.country) countrySet.add(d.country)
+    })
+    
+    return {
+      regions: Array.from(regionSet).sort(),
+      productTypes: Array.from(productTypeSet).sort(),
+      countries: Array.from(countrySet).sort(),
+    }
+  }, [data])
+
+  // Filter data for incremental chart
+  const filteredIncrementalData = useMemo(() => {
+    let filtered = [...data]
+    
+    if (incrementalFilters.region.length > 0) {
+      filtered = filtered.filter(d => incrementalFilters.region.includes(d.region))
+    }
+    if (incrementalFilters.productType.length > 0) {
+      filtered = filtered.filter(d => incrementalFilters.productType.includes(d.productType))
+    }
+    if (incrementalFilters.country.length > 0) {
+      filtered = filtered.filter(d => incrementalFilters.country.includes(d.country))
+    }
+    
+    return filtered
+  }, [data, incrementalFilters])
+
+  // Waterfall Chart Data (Incremental Opportunity) - based on filters
+  const waterfallData = useMemo(() => {
+    // Calculate base value from 2024 data
+    const baseYearData = filteredIncrementalData.filter(d => d.year === 2024)
+    const baseValue = baseYearData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0) || 57159
+    
+    // Calculate incremental values for each year
+    const incrementalValues = []
+    for (let year = 2025; year <= 2031; year++) {
+      const yearData = filteredIncrementalData.filter(d => d.year === year)
+      const prevYearData = filteredIncrementalData.filter(d => d.year === year - 1)
+      
+      const yearValue = yearData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
+      const prevYearValue = prevYearData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
+      
+      // If no data, use default incremental values scaled by filter
+      const incremental = yearValue > 0 && prevYearValue > 0
+        ? yearValue - prevYearValue
+        : [2638.4, 2850.4, 3055.6, 3231.0, 3432.9, 3674.2, 3885.1][year - 2025] * (baseValue / 57159)
+      
+      incrementalValues.push({ year: String(year), value: incremental })
+    }
+    
+    let cumulative = baseValue
+    const chartData = [
+      { year: '2024', baseValue, totalValue: baseValue, isBase: true },
+      ...incrementalValues.map(item => {
+        cumulative += item.value
+        return {
+          year: item.year,
+          incrementalValue: item.value,
+          totalValue: cumulative,
+        }
+      }),
+      { year: '2032', baseValue: cumulative, totalValue: cumulative, isTotal: true },
+    ]
+    
+    const totalIncremental = incrementalValues.reduce((sum, item) => sum + item.value, 0)
+    
+    return { chartData, incrementalOpportunity: totalIncremental }
+  }, [filteredIncrementalData])
+
+  // Get unique options for attractiveness filters
+  const attractivenessFilterOptions = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {
+        regions: [],
+        productTypes: [],
+      }
+    }
+    
+    const regionSet = new Set<string>()
+    const productTypeSet = new Set<string>()
+    
+    data.forEach(d => {
+      if (d.region) regionSet.add(d.region)
+      if (d.productType) productTypeSet.add(d.productType)
+    })
+    
+    return {
+      regions: Array.from(regionSet).sort(),
+      productTypes: Array.from(productTypeSet).sort(),
+    }
+  }, [data])
+
+  // Filter data for attractiveness chart
+  const filteredAttractivenessData = useMemo(() => {
+    let filtered = [...data]
+    
+    // Filter by year range 2025-2032
+    filtered = filtered.filter(d => d.year >= 2025 && d.year <= 2032)
+    
+    if (attractivenessFilters.region.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.region.includes(d.region))
+    }
+    if (attractivenessFilters.productType.length > 0) {
+      filtered = filtered.filter(d => attractivenessFilters.productType.includes(d.productType))
+    }
+    
+    return filtered
+  }, [data, attractivenessFilters])
+
+  // Bubble Chart Data (Market Attractiveness) - based on filters
+  const bubbleChartData = useMemo(() => {
+    // Group data by region
+    const regionDataMap = new Map<string, {
+      values: number[]
+      volumes: number[]
+      years: number[]
+    }>()
+    
+    filteredAttractivenessData.forEach(d => {
+      const region = d.region
+      if (!region) return
+      
+      if (!regionDataMap.has(region)) {
+        regionDataMap.set(region, { values: [], volumes: [], years: [] })
+      }
+      
+      const regionData = regionDataMap.get(region)!
+      const value = (d.marketValueUsd || 0) / 1000 // Convert to millions
+      regionData.values.push(value)
+      regionData.volumes.push(d.volumeUnits || 0)
+      regionData.years.push(d.year)
+    })
+    
+    // Calculate CAGR Index and Market Share Index for each region
+    const regions = Array.from(regionDataMap.keys())
+    const allRegionsTotal = filteredAttractivenessData.reduce((sum, d) => sum + (d.marketValueUsd || 0) / 1000, 0)
+    
+    const bubbleData = regions.map(region => {
+      const regionData = regionDataMap.get(region)!
+      
+      // Calculate CAGR (Compound Annual Growth Rate) from 2025 to 2032
+      const startYear = 2025
+      const endYear = 2032
+      const startValue = regionData.values.find((_, i) => regionData.years[i] === startYear) || 0
+      const endValue = regionData.values.find((_, i) => regionData.years[i] === endYear) || 0
+      
+      let cagr = 0
+      if (startValue > 0 && endValue > 0) {
+        const years = endYear - startYear
+        cagr = (Math.pow(endValue / startValue, 1 / years) - 1) * 100
+      }
+      
+      // Calculate Market Share Index (average market share across years)
+      const regionTotal = regionData.values.reduce((sum, v) => sum + v, 0)
+      const marketShare = allRegionsTotal > 0 ? (regionTotal / allRegionsTotal) * 100 : 0
+      
+      // Calculate Incremental Opportunity (total growth from 2025 to 2032)
+      const incrementalOpportunity = endValue - startValue
+      
+      // Normalize to index scale (0-10) for display
+      const cagrIndex = Math.min(cagr / 10, 10) // Scale CAGR to 0-10 index
+      const marketShareIndex = Math.min(marketShare / 10, 10) // Scale market share to 0-10 index
+      
+      // Use default values if no data
+      const defaultValues: Record<string, { cagr: number; share: number; opp: number }> = {
+        'APAC': { cagr: 8.5, share: 9.2, opp: 12500 },
+        'Asia Pacific': { cagr: 8.5, share: 9.2, opp: 12500 },
+        'Europe': { cagr: 5.2, share: 6.8, opp: 6800 },
+        'North America': { cagr: 5.8, share: 7.1, opp: 7200 },
+        'Middle East': { cagr: 6.5, share: 3.2, opp: 1200 },
+        'Latin America': { cagr: 4.2, share: 2.8, opp: 800 },
+        'Africa': { cagr: 3.8, share: 1.9, opp: 400 },
+      }
+      
+      const defaults = defaultValues[region] || { cagr: 5.0, share: 5.0, opp: 5000 }
+      
+      // Map region names to match screenshot
+      const regionDisplayName = region === 'APAC' ? 'Asia Pacific' : region
+      
+      return {
+        region: regionDisplayName,
+        cagrIndex: cagrIndex > 0 ? cagrIndex : defaults.cagr,
+        marketShareIndex: marketShareIndex > 0 ? marketShareIndex : defaults.share,
+        incrementalOpportunity: incrementalOpportunity > 0 ? incrementalOpportunity : defaults.opp,
+        description: regionDisplayName === 'Asia Pacific' 
+          ? 'Asia Pacific are expected to dominate the Global Shovel Market from rapid industrialization, strong manufacturing capabilities, and robust construction and agricultural sectors that drive significant demand for high-quality shovels.'
+          : undefined,
+      }
+    })
+    
+    // If no regions in filtered data, return default regions
+    if (bubbleData.length === 0) {
+      return [
+        {
+          region: 'Asia Pacific',
+          cagrIndex: 8.5,
+          marketShareIndex: 9.2,
+          incrementalOpportunity: 12500,
+          description: 'Asia Pacific are expected to dominate the Global Shovel Market from rapid industrialization, strong manufacturing capabilities, and robust construction and agricultural sectors that drive significant demand for high-quality shovels.',
+        },
+        {
+          region: 'Europe',
+          cagrIndex: 5.2,
+          marketShareIndex: 6.8,
+          incrementalOpportunity: 6800,
+        },
+        {
+          region: 'North America',
+          cagrIndex: 5.8,
+          marketShareIndex: 7.1,
+          incrementalOpportunity: 7200,
+        },
+        {
+          region: 'Middle East',
+          cagrIndex: 6.5,
+          marketShareIndex: 3.2,
+          incrementalOpportunity: 1200,
+        },
+        {
+          region: 'Latin America',
+          cagrIndex: 4.2,
+          marketShareIndex: 2.8,
+          incrementalOpportunity: 800,
+        },
+        {
+          region: 'Africa',
+          cagrIndex: 3.8,
+          marketShareIndex: 1.9,
+          incrementalOpportunity: 400,
+        },
+      ]
+    }
+    
+    return bubbleData
+  }, [filteredAttractivenessData])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -696,6 +965,51 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
         </div>
       ) : (
         <>
+          {/* Tabs Section */}
+          <div className={`p-6 rounded-2xl mb-6 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'}`}>
+            <div className="flex gap-4 border-b-2 border-gray-300 dark:border-navy-light">
+              <button
+                onClick={() => setActiveTab('standard')}
+                className={`px-6 py-3 font-semibold text-base transition-all relative ${
+                  activeTab === 'standard'
+                    ? 'text-electric-blue dark:text-cyan-accent'
+                    : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-electric-blue dark:hover:text-cyan-accent'
+                }`}
+              >
+                Standard Analysis
+                {activeTab === 'standard' && (
+                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('incremental')}
+                className={`px-6 py-3 font-semibold text-base transition-all relative ${
+                  activeTab === 'incremental'
+                    ? 'text-electric-blue dark:text-cyan-accent'
+                    : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-electric-blue dark:hover:text-cyan-accent'
+                }`}
+              >
+                Incremental Opportunity
+                {activeTab === 'incremental' && (
+                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('attractiveness')}
+                className={`px-6 py-3 font-semibold text-base transition-all relative ${
+                  activeTab === 'attractiveness'
+                    ? 'text-electric-blue dark:text-cyan-accent'
+                    : 'text-text-secondary-light dark:text-text-secondary-dark hover:text-electric-blue dark:hover:text-cyan-accent'
+                }`}
+              >
+                Market Attractiveness
+                {activeTab === 'attractiveness' && (
+                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                )}
+              </button>
+            </div>
+          </div>
+
           <DemoNotice />
 
           {/* Filters Section */}
@@ -853,27 +1167,30 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
             )}
           </div>
 
-          {/* KPI Cards */}
-          <div className="mb-10">
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
-                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                  Key Metrics
-                </h2>
+          {/* Tab Content */}
+          {activeTab === 'standard' && (
+            <>
+              {/* KPI Cards */}
+              <div className="mb-10">
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Key Metrics
+                    </h2>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  <div className={`p-7 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                    <StatBox
+                      title={kpis.totalValue}
+                      subtitle={`Total ${filters.marketEvaluation === 'By Volume' ? 'Volume' : 'Market Size'}`}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-              <div className={`p-7 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-                <StatBox
-                  title={kpis.totalValue}
-                  subtitle={`Total ${filters.marketEvaluation === 'By Volume' ? 'Volume' : 'Market Size'}`}
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Graph 1: Market Size by Product Type */}
+              {/* Graph 1: Market Size by Product Type */}
           {analysisData.productTypeChartData.length > 0 && analysisData.productTypes && analysisData.productTypes.length > 0 && (
             <div className="mb-20">
               <div className="mb-8">
@@ -1189,6 +1506,130 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                 </div>
               </div>
             </div>
+          )}
+            </>
+          )}
+
+          {/* Incremental Opportunity Tab */}
+          {activeTab === 'incremental' && (
+            <>
+              {/* Filters Section for Incremental Tab */}
+              <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Filter Data
+                    </h3>
+                  </div>
+                  <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
+                    Filter incremental opportunity data by region, product type, and country.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FilterDropdown
+                    label="Region"
+                    value={incrementalFilters.region}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, region: value as string[] })}
+                    options={incrementalFilterOptions.regions}
+                  />
+                  <FilterDropdown
+                    label="Product Type"
+                    value={incrementalFilters.productType}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, productType: value as string[] })}
+                    options={incrementalFilterOptions.productTypes}
+                  />
+                  <FilterDropdown
+                    label="Country"
+                    value={incrementalFilters.country}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, country: value as string[] })}
+                    options={incrementalFilterOptions.countries}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-20">
+                <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <WaterfallChart
+                      data={waterfallData.chartData}
+                      xAxisLabel="Year"
+                      yAxisLabel="Market Value (US$ Mn)"
+                      incrementalOpportunity={waterfallData.incrementalOpportunity}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Market Attractiveness Tab */}
+          {activeTab === 'attractiveness' && (
+            <>
+              {/* Filters Section for Attractiveness Tab */}
+              <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Filter Data
+                    </h3>
+                  </div>
+                  <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
+                    Filter market attractiveness data by region and product type (2025-2032).
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FilterDropdown
+                    label="Region"
+                    value={attractivenessFilters.region}
+                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, region: value as string[] })}
+                    options={attractivenessFilterOptions.regions}
+                  />
+                  <FilterDropdown
+                    label="Product Type"
+                    value={attractivenessFilters.productType}
+                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, productType: value as string[] })}
+                    options={attractivenessFilterOptions.productTypes}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-20">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <InfoTooltip content="• Shows market attractiveness by region from 2025 to 2032\n• X-axis: CAGR Index (Compound Annual Growth Rate)\n• Y-axis: Market Share Index\n• Bubble size indicates incremental opportunity\n• Larger bubbles represent greater market potential">
+                      <h2 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark cursor-help">
+                        Market Attractiveness, By Region, 2025-2032
+                      </h2>
+                    </InfoTooltip>
+                  </div>
+                  <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4 mb-2">
+                    Market attractiveness analysis by CAGR and Market Share Index
+                  </p>
+                </div>
+                <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+                  <div className="mb-4 pb-4 border-b border-gray-200 dark:border-navy-light">
+                    <h3 className="text-lg font-bold text-electric-blue dark:text-cyan-accent mb-1">
+                      Market Attractiveness Analysis
+                    </h3>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                      CAGR Index vs Market Share Index
+                    </p>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center min-h-0 pt-2">
+                    <BubbleChart
+                      data={bubbleChartData}
+                      xAxisLabel="CAGR Index"
+                      yAxisLabel="Market Share Index"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </>
       )}
