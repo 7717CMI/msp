@@ -97,12 +97,14 @@ export function BubbleChart({
   }
 
   // Custom shape for 3D bubbles - all blue with 3D effect
-  const CustomShape = (props: any) => {
+  const CustomShape = (props: any): JSX.Element => {
     const { cx, cy, payload } = props
-    const region = payload.region
-    const size = payload.size || 50
+    const region = payload?.region || 'Unknown'
+    const size = payload?.size || 50
     
-    if (!cx || !cy) return null
+    // Ensure cx and cy are valid numbers, default to 0 if not
+    const x = typeof cx === 'number' ? cx : 0
+    const y = typeof cy === 'number' ? cy : 0
     
     // Create unique ID for each bubble to avoid gradient conflicts
     const bubbleId = `bubble-${region.replace(/\s+/g, '-').toLowerCase()}`
@@ -111,8 +113,8 @@ export function BubbleChart({
       <g>
         {/* Shadow for 3D effect */}
         <circle
-          cx={cx}
-          cy={cy + 3}
+          cx={x}
+          cy={y + 3}
           r={size / 2}
           fill="rgba(0, 0, 0, 0.2)"
           opacity={0.3}
@@ -133,8 +135,8 @@ export function BubbleChart({
           </filter>
         </defs>
         <circle
-          cx={cx}
-          cy={cy}
+          cx={x}
+          cy={y}
           r={size / 2}
           fill={`url(#gradient-${bubbleId})`}
           filter={`url(#glow-${bubbleId})`}
@@ -146,8 +148,8 @@ export function BubbleChart({
         />
         {/* Highlight for 3D effect */}
         <circle
-          cx={cx - size / 6}
-          cy={cy - size / 6}
+          cx={x - size / 6}
+          cy={y - size / 6}
           r={size / 4}
           fill="rgba(255, 255, 255, 0.4)"
         />
