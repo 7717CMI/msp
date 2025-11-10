@@ -1012,7 +1012,8 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
           <DemoNotice />
 
-          {/* Filters Section */}
+          {/* Filters Section - Only for Standard Tab */}
+          {activeTab === 'standard' && (
           <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
             <div className="mb-6">
               <div className="flex items-center gap-3 mb-2">
@@ -1166,6 +1167,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
               </div>
             )}
           </div>
+          )}
 
           {/* Tab Content */}
           {activeTab === 'standard' && (
@@ -1512,7 +1514,44 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
 
           {/* Incremental Opportunity Tab */}
           {activeTab === 'incremental' && (
-            <div className="mb-20">
+            <>
+              {/* Filters Section for Incremental Tab */}
+              <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Filter Data
+                    </h3>
+                  </div>
+                  <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
+                    Filter incremental opportunity data by region, product type, and country.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FilterDropdown
+                    label="Region"
+                    value={incrementalFilters.region}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, region: value as string[] })}
+                    options={incrementalFilterOptions.regions}
+                  />
+                  <FilterDropdown
+                    label="Product Type"
+                    value={incrementalFilters.productType}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, productType: value as string[] })}
+                    options={incrementalFilterOptions.productTypes}
+                  />
+                  <FilterDropdown
+                    label="Country"
+                    value={incrementalFilters.country}
+                    onChange={(value) => setIncrementalFilters({ ...incrementalFilters, country: value as string[] })}
+                    options={incrementalFilterOptions.countries}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-20">
                 <div className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 h-[600px] flex flex-col ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
                   <div className="flex-1 flex items-center justify-center min-h-0">
                     <WaterfallChart
@@ -1524,11 +1563,43 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 </div>
               </div>
+            </>
           )}
 
           {/* Market Attractiveness Tab */}
           {activeTab === 'attractiveness' && (
-            <div className="mb-20">
+            <>
+              {/* Filters Section for Attractiveness Tab */}
+              <div className={`p-8 rounded-2xl mb-8 shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'} relative`} style={{ overflow: 'visible' }}>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-1 h-8 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
+                    <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Filter Data
+                    </h3>
+                  </div>
+                  <p className="text-base text-text-secondary-light dark:text-text-secondary-dark ml-4">
+                    Filter market attractiveness data by region and product type (2025-2032).
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FilterDropdown
+                    label="Region"
+                    value={attractivenessFilters.region}
+                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, region: value as string[] })}
+                    options={attractivenessFilterOptions.regions}
+                  />
+                  <FilterDropdown
+                    label="Product Type"
+                    value={attractivenessFilters.productType}
+                    onChange={(value) => setAttractivenessFilters({ ...attractivenessFilters, productType: value as string[] })}
+                    options={attractivenessFilterOptions.productTypes}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-20">
                 <div className="mb-8">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-1 h-10 rounded-full ${isDark ? 'bg-cyan-accent' : 'bg-electric-blue'}`}></div>
@@ -1560,6 +1631,7 @@ export function MarketAnalysis({ onNavigate }: MarketAnalysisProps) {
                   </div>
                 </div>
               </div>
+            </>
           )}
         </>
       )}
