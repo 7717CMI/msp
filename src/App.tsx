@@ -6,7 +6,6 @@ import { Header } from './components/Header'
 import { MobileMenu } from './components/MobileMenu'
 import { LoadingScreen } from './components/LoadingScreen'
 import { Home } from './pages/Home'
-import { MarketAnalysis } from './pages/MarketAnalysis'
 import { CustomerIntelligence } from './pages/CustomerIntelligence'
 import { Contact } from './pages/Contact'
 
@@ -42,8 +41,6 @@ function App() {
     switch (activePage) {
       case 'Home':
         return <Home onNavigate={setActivePage} />
-      case 'MarketAnalysis':
-        return <MarketAnalysis onNavigate={setActivePage} />
       case 'CustomerIntelligence':
         return <CustomerIntelligence onNavigate={setActivePage} />
       case 'Contact':
@@ -56,7 +53,6 @@ function App() {
   const getPageTitle = () => {
     const titles: Record<string, string> = {
       'Home': 'Home',
-      'MarketAnalysis': 'Market Analysis',
       'CustomerIntelligence': 'Customer Intelligence',
       'Contact': 'Contact Us'
     }
