@@ -49,25 +49,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
 
-    // 2. Number of Persons Requiring Protection Distribution
-    const personsData = data.reduce((acc, row) => {
-      const persons = row.numberOfPersonsRequiredProtectionService || 'Unknown'
-      acc[persons] = (acc[persons] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    const personsChart = Object.entries(personsData)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => {
-        // Sort by number of persons (extract number from string)
-        const getNum = (str: string) => {
-          const match = str.match(/(\d+)/)
-          return match ? parseInt(match[1]) : 0
-        }
-        return getNum(a.name) - getNum(b.name)
-      })
-
-    // 3. Types of Threats Faced (breakdown by individual threat types)
+    // 2. Types of Threats Faced (breakdown by individual threat types)
     const threatTypesData: Record<string, number> = {}
     data.forEach(row => {
       if (row.typesOfThreatsFaced) {
@@ -84,10 +66,35 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       .sort((a, b) => b.value - a.value)
       .slice(0, 8) // Top 8 threat types
 
+    // 3. Individual vs Corporate Distribution
+    const individualCorporateData = data.reduce((acc, row) => {
+      // Categorize based on designation role and type of business
+      const designation = (row.designationRole || '').toLowerCase()
+      const businessType = (row.typeOfBusiness || '').toLowerCase()
+      const companyName = (row.companyName || '').toLowerCase()
+      
+      // Check if it's an individual/family office
+      const isIndividual = 
+        designation.includes('family office') ||
+        designation.includes('personal') ||
+        businessType.includes('family office') ||
+        companyName.includes('family office') ||
+        designation.includes('private') ||
+        businessType.includes('private')
+      
+      const category = isIndividual ? 'Individual' : 'Corporate'
+      acc[category] = (acc[category] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const individualCorporateChart = Object.entries(individualCorporateData)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+
     return {
       riskCategory: riskCategoryChart,
-      personsRequired: personsChart,
-      threatTypes: threatsChart
+      threatTypes: threatsChart,
+      individualCorporate: individualCorporateChart
     }
   }, [data])
 
@@ -180,19 +187,17 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
           </div>
         </div>
 
-        {/* Graph 2: Number of Persons Requiring Protection */}
+        {/* Graph 2: Demand Scenario - Individual vs Corporate */}
         <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
           <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
-            Number of Persons Requiring Protection
+            Demand Scenario of Premium Executive Protection and Threat Mitigation Services
           </h3>
           <div className="h-[400px]">
-            <BarChart
-              data={graphData.personsRequired}
+            <PieChart
+              data={graphData.individualCorporate}
               dataKey="value"
               nameKey="name"
-              color="#0075FF"
-              xAxisLabel="Number of Persons"
-              yAxisLabel="Number of Customers"
+              colors={['#0075FF', '#00C49F']}
             />
           </div>
         </div>
@@ -209,7 +214,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
               nameKey="name"
               color="#8B5CF6"
               xAxisLabel="Threat Type"
-              yAxisLabel="Number of Customers"
+              yAxisLabel="Number of Users"
             />
           </div>
         </div>
