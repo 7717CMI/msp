@@ -18,7 +18,7 @@ export function Home({ onNavigate }: HomeProps) {
   const analysisTiles: AnalysisTile[] = [
     {
       title: "Customer Intelligence",
-      description: "Customer database and insights for Executive Protection and Threat Mitigation Services",
+      description: "Customer database and insights for Electronic Lab Notebook (ELN) Market",
       icon: Users,
       id: "CustomerIntelligence",
       gradient: "#0075FF",
@@ -58,10 +58,10 @@ export function Home({ onNavigate }: HomeProps) {
         className="mb-10 text-center"
       >
         <h1 className="text-3xl md:text-4xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
-          GLOBAL PREMIUM EXECUTIVE PROTECTION<br />AND THREAT MITIGATION SERVICES MARKET
+          GLOBAL ELECTRONIC LAB NOTEBOOK (ELN) MARKET
         </h1>
         <p className="text-lg text-electric-blue dark:text-cyan-accent">
-          Customer Database - Verified directory and insight on customers
+          Industry Insights, Trends, Outlook, and Opportunity Analysis, 2025-2032
         </p>
       </motion.div>
 

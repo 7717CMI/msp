@@ -16,6 +16,11 @@ export function Header({ currentPage = 'Home' }: HeaderProps) {
           <span className="text-text-primary-light font-medium">{currentPage}</span>
         </div>
 
+        {/* Dashboard Name */}
+        <div className="hidden md:flex items-center text-sm font-semibold text-text-primary-light dark:text-text-primary-dark mr-auto ml-4">
+          Global Electronic Lab Notebook (ELN) Market
+        </div>
+
         {/* Right Icons */}
         <div className="flex items-center gap-2 lg:gap-4 ml-auto">
           <motion.button

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ArrowLeft, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { getExecutiveProtectionData, ExecutiveProtectionData } from '../utils/executiveProtectionGenerator'
+import { getELNMarketData, ELNMarketData } from '../utils/elnMarketGenerator'
 import { useTheme } from '../context/ThemeContext'
 import { PieChart } from '../components/PieChart'
 import { BarChart } from '../components/BarChart'
@@ -14,7 +14,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   
-  const [data, setData] = useState<ExecutiveProtectionData[]>([])
+  const [data, setData] = useState<ELNMarketData[]>([])
   const [loading, setLoading] = useState(true)
   const [activeModule, setActiveModule] = useState<'module1' | 'module2' | 'module3'>('module1')
   const [currentPage, setCurrentPage] = useState(1)
@@ -23,7 +23,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
   useEffect(() => {
     setLoading(true)
     setTimeout(() => {
-      const generatedData = getExecutiveProtectionData()
+      const generatedData = getELNMarketData()
       setData(generatedData)
       setLoading(false)
     }, 500)
@@ -38,63 +38,47 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
 
   // Graph Data Calculations
   const graphData = useMemo(() => {
-    // 1. Risk Exposure Category Distribution
-    const riskCategoryData = data.reduce((acc, row) => {
-      const category = row.riskExposureCategory || 'Unknown'
+    // 1. Type of Business Distribution
+    const businessTypeData = data.reduce((acc, row) => {
+      const category = row.typeOfBusiness || 'Unknown'
       acc[category] = (acc[category] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    const riskCategoryChart = Object.entries(riskCategoryData)
+    const businessTypeChart = Object.entries(businessTypeData)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
+      .slice(0, 8) // Top 8 business types
 
-    // 2. Types of Threats Faced (breakdown by individual threat types)
-    const threatTypesData: Record<string, number> = {}
-    data.forEach(row => {
-      if (row.typesOfThreatsFaced) {
-        // Split by comma and process each threat type
-        const threats = row.typesOfThreatsFaced.split(',').map(t => t.trim())
-        threats.forEach(threat => {
-          threatTypesData[threat] = (threatTypesData[threat] || 0) + 1
-        })
-      }
-    })
-
-    const threatsChart = Object.entries(threatTypesData)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8) // Top 8 threat types
-
-    // 3. Individual vs Corporate Distribution
-    const individualCorporateData = data.reduce((acc, row) => {
-      // Categorize based on designation role and type of business
-      const designation = (row.designationRole || '').toLowerCase()
-      const businessType = (row.typeOfBusiness || '').toLowerCase()
-      const companyName = (row.companyName || '').toLowerCase()
-      
-      // Check if it's an individual/family office
-      const isIndividual = 
-        designation.includes('family office') ||
-        designation.includes('personal') ||
-        businessType.includes('family office') ||
-        companyName.includes('family office') ||
-        designation.includes('private') ||
-        businessType.includes('private')
-      
-      const category = isIndividual ? 'Individual' : 'Corporate'
+    // 2. AI Readiness Distribution
+    const aiReadinessData = data.reduce((acc, row) => {
+      const aiUsage = row.aiUsageInExperimentalDesign || 'N'
+      const aiDriven = row.aiDrivenELN || 'N'
+      const category = (aiUsage === 'Y' || aiDriven === 'Y') ? 'AI Ready' : 'Not AI Ready'
       acc[category] = (acc[category] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    const individualCorporateChart = Object.entries(individualCorporateData)
+    const aiReadinessChart = Object.entries(aiReadinessData)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+
+    // 3. Cloud Readiness Distribution
+    const cloudReadinessData = data.reduce((acc, row) => {
+      const cloudReady = row.cloudDataReadiness || 'N'
+      const category = cloudReady === 'Y' ? 'Cloud Ready' : 'Not Cloud Ready'
+      acc[category] = (acc[category] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const cloudReadinessChart = Object.entries(cloudReadinessData)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
 
     return {
-      riskCategory: riskCategoryChart,
-      threatTypes: threatsChart,
-      individualCorporate: individualCorporateChart
+      businessType: businessTypeChart,
+      aiReadiness: aiReadinessChart,
+      cloudReadiness: cloudReadinessChart
     }
   }, [data])
 
@@ -104,7 +88,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       headers.join(','),
       ...data.map(row => 
         headers.map(header => {
-          const value = row[header as keyof ExecutiveProtectionData] || ''
+          const value = row[header as keyof ELNMarketData] || ''
           return `"${String(value).replace(/"/g, '""')}"`
         }).join(',')
       )
@@ -113,7 +97,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `executive_protection_module_${activeModule}.csv`
+    link.download = `eln_market_module_${activeModule}.csv`
     link.click()
   }
 
@@ -159,8 +143,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
         className="mb-8"
       >
         <h1 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3">
-          EMEA and Asia Pacific Premium Executive Protection<br />
-          and Threat Mitigation Services Market - Customer Database
+          Global Electronic Lab Notebook (ELN) Market - Customer Database
         </h1>
         <p className="text-xl text-text-secondary-light dark:text-text-secondary-dark">
           Verified directory and insight on customers
@@ -172,49 +155,49 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
 
       {/* Graphs Section */}
       <div className="space-y-6 mb-8">
-        {/* Graph 1: Risk Exposure Category Distribution */}
+        {/* Graph 1: Type of Business Distribution */}
         <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
           <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
-            Risk Exposure Category Distribution
-          </h3>
-          <div className="h-[400px]">
-            <PieChart
-              data={graphData.riskCategory}
-              dataKey="value"
-              nameKey="name"
-              colors={['#EF4444', '#F59E0B', '#10B981']}
-            />
-          </div>
-        </div>
-
-        {/* Graph 2: Demand Scenario - Individual vs Corporate */}
-        <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-          <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
-            Demand Scenario of Premium Executive Protection and Threat Mitigation Services
-          </h3>
-          <div className="h-[400px]">
-            <PieChart
-              data={graphData.individualCorporate}
-              dataKey="value"
-              nameKey="name"
-              colors={['#0075FF', '#00C49F']}
-            />
-          </div>
-        </div>
-
-        {/* Graph 3: Types of Threats Faced */}
-        <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
-          <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
-            Top Threat Types Faced
+            Type of Business Distribution
           </h3>
           <div className="h-[400px]">
             <BarChart
-              data={graphData.threatTypes}
+              data={graphData.businessType}
               dataKey="value"
               nameKey="name"
-              color="#8B5CF6"
-              xAxisLabel="Threat Type"
-              yAxisLabel="Number of Users"
+              color="#0075FF"
+              xAxisLabel="Business Type"
+              yAxisLabel="Number of Customers"
+            />
+          </div>
+        </div>
+
+        {/* Graph 2: AI Readiness Distribution */}
+        <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+          <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
+            AI Readiness Distribution
+          </h3>
+          <div className="h-[400px]">
+            <PieChart
+              data={graphData.aiReadiness}
+              dataKey="value"
+              nameKey="name"
+              colors={['#10B981', '#F59E0B']}
+            />
+          </div>
+        </div>
+
+        {/* Graph 3: Cloud Readiness Distribution */}
+        <div className={`p-6 rounded-xl shadow-lg ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-200'}`}>
+          <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
+            Cloud Data Readiness Distribution
+          </h3>
+          <div className="h-[400px]">
+            <PieChart
+              data={graphData.cloudReadiness}
+              dataKey="value"
+              nameKey="name"
+              colors={['#8B5CF6', '#EF4444']}
             />
           </div>
         </div>
@@ -236,7 +219,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Module 1 - Standard
+            Preposition 1 - Standard
             <span className="block text-xs mt-1 opacity-80">(list of 100-120 Customer)</span>
           </button>
           <button
@@ -252,7 +235,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Module 2 - Advance
+            Preposition 2 - Advance
             <span className="block text-xs mt-1 opacity-80">(list of 100-120 Customer)</span>
           </button>
           <button
@@ -268,7 +251,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Module 3 - Premium
+            Preposition 3 - Premium
             <span className="block text-xs mt-1 opacity-80">(list of 100-120 Customer)</span>
           </button>
         </div>
@@ -278,7 +261,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       {activeModule === 'module1' && (
         <div className={`p-8 rounded-2xl shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'}`}>
           <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-            Module 1 - Customer Information & Contact Details
+            Preposition 1 - Standard: Customer Information & Contact Details
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
@@ -287,7 +270,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                   <th rowSpan={2} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-navy-dark' : 'bg-gray-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     S.No.
                   </th>
-                  <th colSpan={7} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                  <th colSpan={8} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Customer Information
                   </th>
                   <th colSpan={6} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark`}>
@@ -305,13 +288,16 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                     Type of Business
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Involved Specific to Protection
+                    Customer Needs / Use-Case Requirements
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Exposure Category
+                    Customer Pain Points and % Customers Affected
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Number/Count of Users Required Protection Service
+                    Customer Buying Drivers with Weighted Score (Out of 10)
+                  </th>
+                  <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                    Customer Spending Behaviour (Avg. Annual Spend)
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Other Key Insights
@@ -355,24 +341,19 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                       {row.typeOfBusiness}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.riskInvolvedSpecificToProtection}
-                    </td>
-                    <td className={`px-3 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        row.riskExposureCategory?.includes('High')
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : row.riskExposureCategory?.includes('Moderate')
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
-                        {row.riskExposureCategory}
-                      </span>
+                      {row.customerNeedsUseCaseRequirements}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.numberOfPersonsRequiredProtectionService}
+                      {row.customerPainPointsAndPercentAffected}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.otherKeyInsights}
+                      {row.customerBuyingDriversWithWeightedScore}
+                    </td>
+                    <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.customerSpendingBehaviourAvgAnnualSpend}
+                    </td>
+                    <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.otherKeyNeeds}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                       {row.keyContactPerson}
@@ -410,7 +391,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       {activeModule === 'module2' && (
         <div className={`p-8 rounded-2xl shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'}`}>
           <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-            Module 2 - Customer Information, Contact Details & Threat Exposure & Risk Drivers
+            Preposition 2 - Advance: Customer Information, Contact Details & Customer Satisfaction & Churn Data
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
@@ -419,14 +400,14 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                   <th rowSpan={2} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-navy-dark' : 'bg-gray-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     S.No.
                   </th>
-                  <th colSpan={7} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                  <th colSpan={8} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Customer Information
                   </th>
                   <th colSpan={6} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Contact Details
                   </th>
                   <th colSpan={3} className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark`}>
-                    Threat Exposure & Risk Drivers
+                    Customer Satisfaction & Churn Data
                   </th>
                 </tr>
                 <tr className={`border-b-2 ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
@@ -440,16 +421,16 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                     Type of Business
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Involved Specific to Protection
+                    Customer Needs / Use-Case Requirements
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Exposure Category
+                    Customer Pain Points and % Customers Affected
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Number/Count of Users Required Protection Service
+                    Customer Buying Drivers with Weighted Score (Out of 10)
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Other Key Insights
+                    Customer Spending Behaviour (Avg. Annual Spend)
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Key Contact Person
@@ -470,13 +451,13 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                     Website URL
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Types of Threats Faced
+                    Avg. ELN Contract Tenure
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Past Incidents or Recent Triggers
+                    Annual Churn Rate (Global)
                   </th>
                   <th className={`px-3 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark`}>
-                    Family Members at Risk
+                    Top Reasons for Churn
                   </th>
                 </tr>
               </thead>
@@ -499,24 +480,16 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                       {row.typeOfBusiness}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.riskInvolvedSpecificToProtection}
-                    </td>
-                    <td className={`px-3 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        row.riskExposureCategory?.includes('High')
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : row.riskExposureCategory?.includes('Moderate')
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
-                        {row.riskExposureCategory}
-                      </span>
+                      {row.customerNeedsUseCaseRequirements}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.numberOfPersonsRequiredProtectionService}
+                      {row.customerPainPointsAndPercentAffected}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.otherKeyInsights}
+                      {row.customerBuyingDriversWithWeightedScore}
+                    </td>
+                    <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.customerSpendingBehaviourAvgAnnualSpend}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                       {row.keyContactPerson}
@@ -543,19 +516,13 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                       </a>
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.typesOfThreatsFaced}
+                      {row.avgELNContractTenure}
                     </td>
                     <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.pastIncidentsOrRecentTriggers}
+                      {row.annualChurnRateGlobal}
                     </td>
-                    <td className={`px-3 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark`}>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        row.familyMembersAtRisk?.includes('Yes')
-                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {row.familyMembersAtRisk}
-                      </span>
+                    <td className={`px-3 py-2 text-text-secondary-light dark:text-text-secondary-dark`}>
+                      {row.topReasonsForChurn}
                     </td>
                   </tr>
                 ))}
@@ -569,7 +536,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
       {activeModule === 'module3' && (
         <div className={`p-8 rounded-2xl shadow-xl ${isDark ? 'bg-navy-card border-2 border-navy-light' : 'bg-white border-2 border-gray-300'}`}>
           <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-            Module 3 - Complete Customer Intelligence with Purchasing Behaviour, Service Requirements & CMI Insights
+            Preposition 3 - Premium: Complete Customer Intelligence with AI Readiness, Future Needs & CMI Insights
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-xs">
@@ -578,20 +545,20 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                   <th rowSpan={2} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-navy-dark' : 'bg-gray-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     S.No.
                   </th>
-                  <th colSpan={7} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                  <th colSpan={8} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Customer Information
                   </th>
                   <th colSpan={6} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Contact Details
                   </th>
                   <th colSpan={3} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Threat Exposure & Risk Drivers
+                    Customer Satisfaction & Churn Data
                   </th>
-                  <th colSpan={3} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Purchasing Behaviour
+                  <th colSpan={4} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                    Customer Readiness for AI & Automation
                   </th>
-                  <th colSpan={5} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Service Requirements
+                  <th colSpan={4} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                    Customer Future Needs
                   </th>
                   <th colSpan={2} className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-text-primary-light dark:text-text-primary-dark`}>
                     CMI Insights
@@ -608,73 +575,76 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                     Type of Business
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Involved
+                    Customer Needs / Use-Case Requirements
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Risk Category
+                    Customer Pain Points and % Customers Affected
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Number of Users
+                    Customer Buying Drivers with Weighted Score (Out of 10)
+                  </th>
+                  <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                    Customer Spending Behaviour (Avg. Annual Spend)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-blue-900' : 'bg-blue-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                     Other Key Insights
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Contact Person
+                    Key Contact Person
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Designation
+                    Designation/Role
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Email
+                    Email Address
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Phone
+                    Phone/WhatsApp Number
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    LinkedIn
+                    LinkedIn Profile
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-purple-900' : 'bg-purple-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Website
+                    Website URL
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Types of Threats
+                    Avg. ELN Contract Tenure
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Past Incidents
+                    Annual Churn Rate (Global)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-green-900' : 'bg-green-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Family at Risk
+                    Top Reasons for Churn
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Decision Makers
+                    AI usage in experimental design (Y/N)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Procurement Method
+                    Cloud data readiness (Y/N)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Budget Levels
+                    Automation equipment in lab (Y/N)
+                  </th>
+                  <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-yellow-900' : 'bg-yellow-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                    AI-driven ELN (Y/N)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Type of Protection
+                    Real-time collaboration dashboards (Y/N)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Protection Intensity
+                    Modular workflow builders
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Contract Duration
+                    ELN - Data Lake Connectivity (Data Export/Data Pipelines/Secu)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Technology Expectations
-                  </th>
-                  <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-indigo-900' : 'bg-indigo-100'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Other Key Details
+                    Other Key Needs (If Any)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-text-primary-light dark:text-text-primary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                    Benchmarking Summary
+                    Customer Benchmarking Summary (Potential Customers)
                   </th>
                   <th className={`px-2 py-2 text-center font-semibold ${isDark ? 'bg-gray-700' : 'bg-gray-200'} text-text-primary-light dark:text-text-primary-dark`}>
-                    Additional Comments
+                    Additional Comments/Notes By CMI team
                   </th>
                 </tr>
               </thead>
@@ -697,24 +667,19 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                       {row.typeOfBusiness}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.riskInvolvedSpecificToProtection}
-                    </td>
-                    <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      <span className={`px-1 py-0.5 rounded text-xs font-medium ${
-                        row.riskExposureCategory?.includes('High')
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : row.riskExposureCategory?.includes('Moderate')
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
-                        {row.riskExposureCategory}
-                      </span>
+                      {row.customerNeedsUseCaseRequirements}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.numberOfPersonsRequiredProtectionService}
+                      {row.customerPainPointsAndPercentAffected}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.otherKeyInsights}
+                      {row.customerBuyingDriversWithWeightedScore}
+                    </td>
+                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.customerSpendingBehaviourAvgAnnualSpend}
+                    </td>
+                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.otherKeyNeeds}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                       {row.keyContactPerson}
@@ -741,43 +706,37 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                       </a>
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.typesOfThreatsFaced}
+                      {row.avgELNContractTenure}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.pastIncidentsOrRecentTriggers}
+                      {row.annualChurnRateGlobal}
+                    </td>
+                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.topReasonsForChurn}
                     </td>
                     <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      <span className={`px-1 py-0.5 rounded text-xs font-medium ${
-                        row.familyMembersAtRisk?.includes('Yes')
-                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                      }`}>
-                        {row.familyMembersAtRisk}
-                      </span>
+                      {row.aiUsageInExperimentalDesign}
+                    </td>
+                    <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.cloudDataReadiness}
+                    </td>
+                    <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.automationEquipmentInLab}
+                    </td>
+                    <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.aiDrivenELN}
+                    </td>
+                    <td className={`px-2 py-2 text-center text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
+                      {row.realTimeCollaborationDashboards}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.decisionMakers}
+                      {row.modularWorkflowBuilders}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.procurementMethod}
+                      {row.elnDataLakeConnectivity}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.budgetLevels}
-                    </td>
-                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.typeOfProtectionRequired}
-                    </td>
-                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.protectionIntensity}
-                    </td>
-                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.preferredContractDuration}
-                    </td>
-                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.technologyExpectations}
-                    </td>
-                    <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
-                      {row.otherKeyDetails}
+                      {row.otherKeyNeeds}
                     </td>
                     <td className={`px-2 py-2 text-text-secondary-light dark:text-text-secondary-dark border-r ${isDark ? 'border-navy-light' : 'border-gray-300'}`}>
                       {row.customerBenchmarkingSummary}
