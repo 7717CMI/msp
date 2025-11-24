@@ -1037,7 +1037,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Proposition 1
+            Proposition 1 - Basic
           </button>
           <button
             onClick={() => setActiveProposition('proposition2')}
@@ -1049,7 +1049,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Proposition 2
+            Proposition 2 - Advanced
           </button>
           <button
             onClick={() => setActiveProposition('proposition3')}
@@ -1061,7 +1061,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
                 : 'bg-gray-100 text-text-secondary-light hover:bg-gray-200'
             }`}
           >
-            Proposition 3
+            Proposition 3 - Premium
           </button>
         </div>
       </div>
