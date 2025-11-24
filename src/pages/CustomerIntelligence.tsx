@@ -114,7 +114,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
   const proposition1Data: DistributorData[] = [
     {
       sNo: 1,
-      customerName: 'R. Sharma',
+      customerName: 'IndiGo Airlines',
       companyName: 'IndiGo (InterGlobe Aviation Ltd.)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Passenger',
@@ -139,7 +139,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 2,
-      customerName: 'A. Patel',
+      customerName: 'Air India',
       companyName: 'Air India (Tata Group)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Full Service Carrier',
@@ -157,7 +157,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 3,
-      customerName: 'S. Kapoor',
+      customerName: 'SpiceJet',
       companyName: 'SpiceJet Limited',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -175,7 +175,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 4,
-      customerName: 'M. Singh',
+      customerName: 'Vistara Airlines',
       companyName: 'Vistara (TATA-SIA Airlines Ltd)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Premium Carrier',
@@ -193,7 +193,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 5,
-      customerName: 'R. Gupta',
+      customerName: 'Go First Airlines',
       companyName: 'Go First (Go Airlines India Ltd)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -211,7 +211,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 6,
-      customerName: 'K. Reddy',
+      customerName: 'AirAsia India',
       companyName: 'AirAsia India',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -229,7 +229,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 7,
-      customerName: 'V. Nair',
+      customerName: 'Alliance Air',
       companyName: 'Alliance Air (Air India Regional)',
       companySize: 'SME',
       industryArea: 'Commercial Aviation – Regional Carrier',
@@ -247,7 +247,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 8,
-      customerName: 'D. Joshi',
+      customerName: 'Akasa Air',
       companyName: 'Akasa Air',
       companySize: 'SME',
       industryArea: 'Commercial Aviation – Ultra Low Cost Carrier',
@@ -265,7 +265,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 9,
-      customerName: 'P. Malhotra',
+      customerName: 'Air India Express',
       companyName: 'Air India Express',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Int. Carrier',
@@ -287,7 +287,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
   const proposition2Data: DistributorData[] = [
     {
       sNo: 1,
-      customerName: 'R. Sharma',
+      customerName: 'IndiGo Airlines',
       companyName: 'IndiGo (InterGlobe Aviation Ltd.)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Passenger',
@@ -321,7 +321,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 2,
-      customerName: 'A. Patel',
+      customerName: 'Air India',
       companyName: 'Air India (Tata Group)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Full Service Carrier',
@@ -345,7 +345,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 3,
-      customerName: 'S. Kapoor',
+      customerName: 'SpiceJet',
       companyName: 'SpiceJet Limited',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -369,7 +369,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 4,
-      customerName: 'M. Singh',
+      customerName: 'Vistara Airlines',
       companyName: 'Vistara (TATA-SIA Airlines Ltd)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Premium Carrier',
@@ -393,7 +393,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 5,
-      customerName: 'R. Gupta',
+      customerName: 'Go First Airlines',
       companyName: 'Go First (Go Airlines India Ltd)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -417,7 +417,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 6,
-      customerName: 'K. Reddy',
+      customerName: 'AirAsia India',
       companyName: 'AirAsia India',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -441,7 +441,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 7,
-      customerName: 'V. Nair',
+      customerName: 'Alliance Air',
       companyName: 'Alliance Air (Air India Regional)',
       companySize: 'SME',
       industryArea: 'Commercial Aviation – Regional Carrier',
@@ -465,7 +465,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 8,
-      customerName: 'D. Joshi',
+      customerName: 'Akasa Air',
       companyName: 'Akasa Air',
       companySize: 'SME',
       industryArea: 'Commercial Aviation – Ultra Low Cost Carrier',
@@ -489,7 +489,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 9,
-      customerName: 'P. Malhotra',
+      customerName: 'Air India Express',
       companyName: 'Air India Express',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Int. Carrier',
@@ -517,7 +517,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
   const proposition3Data: DistributorData[] = [
     {
       sNo: 1,
-      customerName: 'R. Sharma',
+      customerName: 'IndiGo Airlines',
       companyName: 'IndiGo (InterGlobe Aviation Ltd.)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Passenger',
@@ -577,7 +577,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 2,
-      customerName: 'A. Patel',
+      customerName: 'Air India',
       companyName: 'Air India (Tata Group)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Full Service Carrier',
@@ -611,7 +611,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 3,
-      customerName: 'S. Kapoor',
+      customerName: 'SpiceJet',
       companyName: 'SpiceJet Limited',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -645,7 +645,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 4,
-      customerName: 'P. Mehta',
+      customerName: 'Vistara Airlines',
       companyName: 'Vistara (TATA-SIA Airlines Ltd)',
       companySize: 'Large Enterprise',
       industryArea: 'Commercial Aviation – Full Service',
@@ -680,7 +680,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 5,
-      customerName: 'K. Iyer',
+      customerName: 'Go First Airlines',
       companyName: 'Go First (Go Airlines India Ltd)',
       companySize: 'Medium Enterprise',
       industryArea: 'Commercial Aviation – Low Cost Carrier',
@@ -715,7 +715,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 6,
-      customerName: 'M. Rao',
+      customerName: 'AirAsia India',
       companyName: 'AirAsia India',
       companySize: 'Medium Enterprise',
       industryArea: 'Commercial Aviation – Ultra Low Cost',
@@ -750,7 +750,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 7,
-      customerName: 'D. Singh',
+      customerName: 'Alliance Air',
       companyName: 'Alliance Air (Air India Regional)',
       companySize: 'Small-Medium Enterprise',
       industryArea: 'Regional Aviation – Government Subsidiary',
@@ -785,7 +785,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 8,
-      customerName: 'A. Gupta',
+      customerName: 'Akasa Air',
       companyName: 'Akasa Air',
       companySize: 'Start-up / Small Enterprise',
       industryArea: 'Commercial Aviation – New Entrant LCC',
@@ -820,7 +820,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 9,
-      customerName: 'V. Nair',
+      customerName: 'Air India Express',
       companyName: 'Air India Express',
       companySize: 'Medium Enterprise',
       industryArea: 'Commercial Aviation – LCC International',
@@ -855,7 +855,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 10,
-      customerName: 'T. Reddy',
+      customerName: 'Star Air',
       companyName: 'Star Air (Sree Airlines)',
       companySize: 'Small Enterprise',
       industryArea: 'Regional Aviation – Scheduled Carrier',
@@ -890,7 +890,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 11,
-      customerName: 'N. Kumar',
+      customerName: 'TruJet Airlines',
       companyName: 'TruJet Airlines (Turbo Megha Airways)',
       companySize: 'Small Enterprise',
       industryArea: 'Regional Aviation – Tier-2/3 Connectivity',
@@ -925,7 +925,7 @@ export function CustomerIntelligence({ onNavigate }: CustomerIntelligenceProps) 
     },
     {
       sNo: 12,
-      customerName: 'S. Bose',
+      customerName: 'FLY91',
       companyName: 'FLY91 (Fly-Ninety-One)',
       companySize: 'Start-up / Small Enterprise',
       industryArea: 'Regional Aviation – New Entrant (South India)',
